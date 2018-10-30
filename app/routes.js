@@ -1,3 +1,5 @@
+require('isomorphic-fetch');
+
 module.exports = function(app, passport) {
 
 // normal routes ===============================================================
@@ -9,15 +11,39 @@ module.exports = function(app, passport) {
 
     // PROFILE SECTION =========================
     app.get('/profile', isLoggedIn, function(req, res) {
-        res.render('profile.ejs', {
-            user : req.user
-        });
+        fetch("http://localhost:8080/protected-route", {
+          headers: {
+            // This passes the cookies from the browser request into the server side request to /protected-route
+            // if you comment the next line out, the catch statement will be hit because it won't pass authentication
+            'Cookie': req.headers.cookie,
+          },
+        })
+          .then(res => res.json())
+          .then(data => {
+            console.log('success fetching /protected-route!!!');
+            console.log(JSON.stringify(data, null, 2));
+            res.render('profile.ejs', {
+                user : req.user
+            });
+          })
+          .catch(error => {
+            console.log('error fetching /protected-route:');
+            console.log(JSON.stringify(error, null, 2));
+            res.render('profile.ejs', {
+                user : req.user
+            });
+          });
     });
 
     // LOGOUT ==============================
     app.get('/logout', function(req, res) {
         req.logout();
         res.redirect('/');
+    });
+
+    app.get('/protected-route', isLoggedIn, (req, res) => {
+        // Send some protected user data back
+        res.json(req.user);
     });
 
 // =============================================================================
